@@ -1,0 +1,27 @@
+[package]
+name = "cos_upload"
+version = "0.1.0"
+edition = "2021"
+description = "A Rust library for uploading files to COS (Cloud Object Storage)"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/YenHarvey/cos_upload"
+homepage = "https://github.com/YenHarvey/cos_upload"
+documentation = "https://docs.rs/cos_upload"
+readme = "README.md"
+keywords = ["upload", "COS", "cloud storage", "rust"]
+categories = ["network-programming", "cloud"]
+authors = ["YenHarvey <2117555041@qq.com>"]
+
+[dependencies]
+anyhow = "1.0.89"
+chrono = "0.4.38"
+dotenv = "0.15.0"
+hex = "0.4.3"
+hmac = "0.12.1"
+mime_guess = "2.0.5"
+reqwest = "0.12.7"
+sha1 = "0.10.6"
+tempfile = "3.13.0"
+tokio = { version = "1.40.0", features = ["full"] }
+tracing = "0.1.40"
+urlencoding = "2.1.3"
