@@ -9,7 +9,7 @@ homepage = "https://github.com/YenHarvey/cos_upload"
 documentation = "https://docs.rs/cos_upload"
 readme = "README.md"
 keywords = ["upload", "COS", "cloud_storage", "rust"]
-categories = ["tencent", "cloud"]
+categories = ["web-programming"]
 authors = ["YenHarvey <2117555041@qq.com>"]
 
 [dependencies]
