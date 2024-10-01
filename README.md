@@ -26,6 +26,18 @@ cos_upload = "0.1.0"
 
 ## 使用示例
 
+### 环境变量
+
+```bash
+TENCENT_SECRET_ID=
+TENCENT_SECRET_KEY=
+
+TENCENT_COS_REGION=
+TENCENT_COS_BUCKET=
+```
+
+### 代码示例
+
 ```rust
 use cos_upload::{Config, Uploader};
 use anyhow::Result;
