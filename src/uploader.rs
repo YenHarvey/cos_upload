@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::path::Path;
 use tokio::fs::File;
 use tokio::io::{AsyncReadExt, AsyncSeekExt};
-use tracing::{error, info};
+use tracing::{debug, error, info};
 
 /// 分块上传的阈值，超过此大小的文件将使用分块上传
 const MULTIPART_THRESHOLD: u64 = 5 * 1024 * 1024; // 5 MB
@@ -17,6 +17,8 @@ pub struct Uploader {
     client: Client,
     config: Config,
 }
+
+pub type Metadata = HashMap<String, String>;
 
 impl Uploader {
     /// 创建新的上传器实例
@@ -47,14 +49,15 @@ impl Uploader {
         &self,
         file_path: P,
         object_key: &str,
+        metadata: Option<Metadata>,
     ) -> Result<String> {
         let file_path = file_path.as_ref();
         let file_size = tokio::fs::metadata(file_path).await?.len();
 
         if file_size > MULTIPART_THRESHOLD {
-            self.multipart_upload(file_path, object_key).await
+            self.multipart_upload(file_path, object_key, metadata).await
         } else {
-            self.simple_upload(file_path, object_key).await
+            self.simple_upload(file_path, object_key, metadata).await
         }
     }
 
@@ -63,9 +66,10 @@ impl Uploader {
         &self,
         file_path: P,
         object_key: &str,
+        metadata: Option<Metadata>,
     ) -> Result<String> {
         let file_path = file_path.as_ref();
-        info!("普通上传文件: {:?}", file_path);
+        debug!("普通上传文件: {:?}", file_path);
 
         let url = format!(
             "https://{}.cos.{}.myqcloud.com/{}",
@@ -89,6 +93,13 @@ impl Uploader {
         );
         headers.insert("Content-Length".to_string(), file_content.len().to_string());
 
+        // 添加元数据头
+        if let Some(metadata) = metadata {
+            for (key, value) in metadata {
+                headers.insert(format!("x-cos-meta-{}", key), value);
+            }
+        }
+
         let params = HashMap::new();
 
         let authorization = generate_authorization(
@@ -101,18 +112,18 @@ impl Uploader {
             3600,
         );
 
-        let response = self
+        // 构建请求 headers
+        let mut request = self
             .client
             .put(&url)
-            .header("Authorization", authorization)
-            .header("Content-Type", content_type)
-            .header(
-                "Host",
-                format!(
-                    "{}.cos.{}.myqcloud.com",
-                    self.config.bucket, self.config.region
-                ),
-            )
+            .header("Authorization", authorization);
+
+        for (key, value) in headers {
+            request = request.header(key, value);
+        }
+
+        // 发送请求
+        let response = request
             .body(file_content)
             .send()
             .await?;
@@ -132,6 +143,7 @@ impl Uploader {
         &self,
         file_path: P,
         object_key: &str,
+        metadata: Option<Metadata>,
     ) -> Result<String> {
         let file_path = file_path.as_ref();
         info!("分块上传文件: {:?}", file_path);
@@ -142,7 +154,7 @@ impl Uploader {
         );
 
         // 初始化分块上传
-        let upload_id = self.init_multipart_upload(object_key).await?;
+        let upload_id = self.init_multipart_upload(object_key, metadata).await?;
 
         // 上传分块
         let mut file = File::open(file_path).await?;
@@ -185,7 +197,11 @@ impl Uploader {
     /// # 返回值
     ///
     /// 成功时返回上传 ID
-    async fn init_multipart_upload(&self, object_key: &str) -> Result<String> {
+    async fn init_multipart_upload(
+        &self,
+        object_key: &str,
+        metadata: Option<Metadata>,
+    ) -> Result<String> {
         let url = format!(
             "https://{}.cos.{}.myqcloud.com/{}?uploads",
             self.config.bucket, self.config.region, object_key
@@ -200,6 +216,12 @@ impl Uploader {
             ),
         );
 
+        if let Some(metadata) = metadata {
+            for (key, value) in metadata {
+                headers.insert(format!("x-cos-meta-{}", key), value);
+            }
+        }
+
         let params = HashMap::from([("uploads".to_string(), "".to_string())]);
 
         let authorization = generate_authorization(
@@ -212,17 +234,17 @@ impl Uploader {
             3600,
         );
 
-        let response = self
+        // 构建请求 headers
+        let mut request = self
             .client
             .post(&url)
-            .header("Authorization", authorization)
-            .header(
-                "Host",
-                format!(
-                    "{}.cos.{}.myqcloud.com",
-                    self.config.bucket, self.config.region
-                ),
-            )
+            .header("Authorization", authorization);
+
+        for (key, value) in headers {
+            request = request.header(key, value);
+        }
+
+        let response = request
             .send()
             .await?;
 

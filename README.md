@@ -21,7 +21,7 @@
 
 ```toml
 [dependencies]
-cos_upload = "0.1.0"
+cos_upload = "0.1.1"
 ```
 
 ## 使用示例
@@ -39,22 +39,41 @@ TENCENT_COS_BUCKET=
 ### 代码示例
 
 ```rust
-use cos_upload::{Config, Uploader};
 use anyhow::Result;
+use chrono::Utc;
+use cos_upload::{Config, Uploader};
+use std::collections::HashMap;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    dotenv::dotenv().ok();
+    
     // 从环境变量创建配置
     let config = Config::from_env()?;
-
-    // 创建上传器
+    
+    // 或者手动创建配置
+    // let config = Config::new(
+    //     "secret_id".to_string(),
+    //     "secret_key".to_string(),
+    //     "region".to_string(),
+    //     "bucket".to_string()
+    // );
+    
+    // 创建上传器实例
     let uploader = Uploader::new(config);
+    
+    // 创建并添加对象元数据
+    let mut metadata = HashMap::new();
+    metadata.insert("user-id".to_string(), "123".to_string());
+    metadata.insert("username".to_string(), "sample_user".to_string());
+    metadata.insert("source".to_string(), "sample_source".to_string());
+    metadata.insert("upload-time".to_string(), Utc::now().to_rfc3339());
 
-    // 上传文件
-    let file_path = "path/to/your/file.jpg";
-    let object_key = "uploads/file.jpg";
+    // 上传文件，使用通用文件路径示例
+    let file_path = "path/to/local/testfile";
+    let object_key = "uploads/user_123/sample_file"; // 按用户组织路径
 
-    match uploader.upload_file(file_path, object_key).await {
+    match uploader.upload_file(file_path, object_key, Some(metadata)).await {
         Ok(url) => println!("文件上传成功。URL: {}", url),
         Err(e) => eprintln!("文件上传失败: {}", e),
     }
@@ -73,4 +92,4 @@ async fn main() -> Result<()> {
 
 ## 许可证
 
-根据 MIT 许可证或 Apache License 2.0 许可证（由您选择）授权。
+根据 Apache License 2.0 许可证授权。
