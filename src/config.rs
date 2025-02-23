@@ -1,7 +1,7 @@
 use anyhow::Result;
 
 /// COS 配置结构体
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Config {
     /// 腾讯云 SecretId
     pub secret_id: String,

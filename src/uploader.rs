@@ -13,6 +13,7 @@ const MULTIPART_THRESHOLD: u64 = 5 * 1024 * 1024; // 5 MB
 /// 每个分块的大小
 const PART_SIZE: u64 = 5 * 1024 * 1024; // 5 MB
 
+#[derive(Debug, Clone)]
 pub struct Uploader {
     client: Client,
     config: Config,
@@ -113,20 +114,14 @@ impl Uploader {
         );
 
         // 构建请求 headers
-        let mut request = self
-            .client
-            .put(&url)
-            .header("Authorization", authorization);
+        let mut request = self.client.put(&url).header("Authorization", authorization);
 
         for (key, value) in headers {
             request = request.header(key, value);
         }
 
         // 发送请求
-        let response = request
-            .body(file_content)
-            .send()
-            .await?;
+        let response = request.body(file_content).send().await?;
 
         if response.status().is_success() {
             info!("文件上传成功: {}", url);
@@ -244,9 +239,7 @@ impl Uploader {
             request = request.header(key, value);
         }
 
-        let response = request
-            .send()
-            .await?;
+        let response = request.send().await?;
 
         if response.status().is_success() {
             let text = response.text().await?;
